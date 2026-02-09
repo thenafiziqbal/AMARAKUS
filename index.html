@@ -1,0 +1,1497 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>আমার ২১ ফ্রেম জেনারেটর</title>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-green: #2A9D8F;
+            --light-green: #4CC9A3;
+            --primary-red: #E63946;
+            --bg-dark: #0A1929;
+        }
+        
+        * {
+            font-family: 'Hind Siliguri', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #14213D 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.36);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-green) 0%, var(--light-green) 100%);
+            color: white;
+            font-weight: 600;
+            padding: 12px 24px;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(42, 157, 143, 0.5);
+        }
+        
+        .text-gradient {
+            background: linear-gradient(90deg, var(--primary-green), var(--light-green));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        /* Fixed input colors */
+        input, select, textarea {
+            background: rgba(255, 255, 255, 0.08) !important;
+            border: 1px solid rgba(255, 255, 255, 0.15) !important;
+            border-radius: 8px !important;
+            color: #38A38E!important;
+            padding: 12px 16px !important;
+            transition: all 0.3s ease !important;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            outline: none !important;
+            border-color: var(--primary-green) !important;
+            box-shadow: 0 0 0 3px rgba(42, 157, 143, 0.2) !important;
+            background: rgba(255, 255, 255, 0.12) !important;
+        }
+        
+        input::placeholder, textarea::placeholder {
+            color: rgba(255, 255, 255, 0.5) !important;
+        }
+        
+        /* Canvas styling */
+        .canvas-container {
+            width: 100%;
+            max-width: 500px;
+            height: 500px;
+            margin: 0 auto;
+        }
+        
+        /* Loading animation */
+        .loading-spinner {
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-left-color: var(--primary-green);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Category filter */
+        .category-filter {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .category-btn {
+            padding: 8px 16px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .category-btn.active {
+            background: var(--primary-green);
+            color: white;
+            border-color: var(--primary-green);
+        }
+        
+        /* Frame card */
+        .frame-card {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .frame-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--primary-green);
+        }
+        
+        .frame-card.selected {
+            border-color: var(--primary-green);
+        }
+        
+        /* Notification */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 10px;
+            color: white;
+            font-weight: 500;
+            z-index: 1000;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            transform: translateX(120%);
+            transition: transform 0.3s ease;
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        .notification.success {
+            background: linear-gradient(135deg, var(--primary-green), var(--light-green));
+        }
+        
+        .notification.error {
+            background: linear-gradient(135deg, var(--primary-red), #F28482);
+        }
+        
+        /* Admin Activity Indicator */
+        .admin-indicator {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--primary-green);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 12px;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(42, 157, 143, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(42, 157, 143, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(42, 157, 143, 0); }
+        }
+        
+        /* School Badge */
+        .school-badge {
+            display: inline-block;
+            background: var(--primary-green);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            margin-left: 5px;
+        }
+        
+        /* Toggle Switch */
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+        
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 24px;
+        }
+        
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .toggle-slider {
+            background-color: var(--primary-green);
+        }
+        
+        input:checked + .toggle-slider:before {
+            transform: translateX(26px);
+        }
+        
+        /* Text Options Container */
+        .text-options-container {
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+        
+        .text-options-container.collapsed {
+            opacity: 0.6;
+        }
+        
+        /* Frame Image Preview */
+        .frame-preview {
+            position: relative;
+            width: 100%;
+            height: 200px;
+            border-radius: 10px;
+            overflow: hidden;
+            background: rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .frame-preview img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <!-- Notification -->
+    <div id="notification" class="notification hidden"></div>
+    
+    <!-- Admin Activity Indicator -->
+    <div id="adminIndicator" class="admin-indicator hidden">
+        <i class="fas fa-sync-alt"></i>
+        <span>সিস্টেম আপডেট হয়েছে</span>
+    </div>
+    
+    <!-- Header -->
+    <header class="glass-effect py-4 px-6">
+        <div class="container mx-auto">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 rounded-full bg-gradient-to-r from-green-500 to-blue-500 flex items-center justify-center mr-3">
+                        <i class="fas fa-language text-white text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 id="siteTitle" class="text-2xl font-bold text-gradient">আমার ২১ ফ্রেম জেনারেটর</h1>
+                        <p class="text-sm text-gray-300">আপনার ছবিতে বিশেষ  ফ্রেম যোগ করুন</p>
+                          <p class="text-sm text-gray-300">চারঘাট সরকারি টেকনিক্যাল স্কুল এন্ড কলেজ IoT ডিপাডমেন্ট দ্বারা তৈরি </p>
+
+                </div>
+                
+                <div class="text-center">
+                    <div class="text-xs text-gray-300">মোট ডাউনলোড</div>
+                    <div id="downloadCounter" class="text-2xl font-bold text-gradient">0</div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <div class="max-w-4xl mx-auto">
+            <!-- Step Indicator -->
+            <div class="flex justify-center mb-8">
+                <div class="flex items-center">
+                    <div class="step w-10 h-10 rounded-full bg-green-500 flex items-center justify-center text-white font-bold">১</div>
+                    <div class="w-16 h-1 bg-gray-700 mx-2"></div>
+                    <div class="step w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center text-gray-400 font-bold">২</div>
+                    <div class="w-16 h-1 bg-gray-700 mx-2"></div>
+                    <div class="step w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center text-gray-400 font-bold">৩</div>
+                </div>
+            </div>
+            
+            <!-- Step 1: School & User Info -->
+            <div id="step1" class="animate-fadeIn">
+                <div class="glass-effect rounded-2xl p-6 md:p-8 mb-8">
+                    <h2 class="text-2xl font-bold mb-6 text-gradient">প্রথম ধাপ: তথ্য প্রদান</h2>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <div class="mb-6">
+                                <label class="block text-sm mb-2">পূর্ণ নাম *</label>
+                                <input type="text" id="userName" placeholder="আপনার পূর্ণ নাম লিখুন" class="w-full" required>
+                            </div>
+                            
+                            <div class="mb-6">
+                                <label class="block text-sm mb-2">প্রতিষ্ঠান *</label>
+                                <select id="userSchool" class="w-full" required>
+                                    <option value="">প্রতিষ্ঠান নির্বাচন করুন</option>
+                                    <!-- Schools will be loaded dynamically -->
+                                </select>
+                            </div>
+                            
+                            <div id="otherSchoolContainer" class="mb-6 hidden">
+                                <label class="block text-sm mb-2">প্রতিষ্ঠানের নাম লিখুন</label>
+                                <input type="text" id="otherSchoolName" placeholder="প্রতিষ্ঠানের নাম" class="w-full">
+                            </div>
+                            
+                            <div class="mb-6">
+                                <label class="block text-sm mb-2">মোবাইল নম্বর</label>
+                                <input type="tel" id="userPhone" placeholder="01XXXXXXXXX" class="w-full">
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <div class="bg-green-900/20 border border-green-800/30 rounded-xl p-6 h-full">
+                                <h3 class="font-bold mb-4 text-green-300">গুরুত্বপূর্ণ তথ্য</h3>
+                                <ul class="space-y-3 text-sm text-gray-300">
+                                    <li class="flex items-start">
+                                        <i class="fas fa-check-circle text-green-400 mt-1 mr-2"></i>
+                                        <span>শুধুমাত্র নাম ও প্রতিষ্ঠান দিয়েই ডাউনলোড করা যাবে</span>
+                                    </li>
+                                    <li class="flex items-start">
+                                        <i class="fas fa-check-circle text-green-400 mt-1 mr-2"></i>
+                                        <span>আপনার প্রতিষ্ঠানের জন্য বিশেষ ফ্রেম পাওয়া যাবে</span>
+                                    </li>
+                                    <li class="flex items-start">
+                                        <i class="fas fa-check-circle text-green-400 mt-1 mr-2"></i>
+                                        <span>সরাসরি PNG ফরম্যাটে ডাউনলোড হবে</span>
+                                    </li>
+                                    <li class="flex items-start">
+                                        <i class="fas fa-check-circle text-green-400 mt-1 mr-2"></i>
+                                        <span id="downloadLimitText">প্রতিদিন সর্বোচ্চ ৫০ বার ডাউনলোড করা যাবে</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button onclick="goToStep(2)" class="btn-primary w-full mt-6">
+                        পরবর্তী ধাপ <i class="fas fa-arrow-right ml-2"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Step 2: Image Upload & Frame Selection -->
+            <div id="step2" class="hidden animate-fadeIn">
+                <div class="glass-effect rounded-2xl p-6 md:p-8 mb-8">
+                    <h2 class="text-2xl font-bold mb-6 text-gradient">দ্বিতীয় ধাপ: ছবি ও ফ্রেম নির্বাচন</h2>
+                    
+                    <!-- Category Filter -->
+                    <div class="mb-6">
+                        <h3 class="font-bold mb-3 text-gradient">ফ্রেম ক্যাটাগরি</h3>
+                        <div class="category-filter" id="categoryFilter">
+                            <button class="category-btn active" onclick="filterCategory('all')">সকল ফ্রেম</button>
+                            <!-- Categories will be loaded dynamically -->
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <!-- Image Upload -->
+                        <div>
+                            <div class="mb-6">
+                                <h3 class="font-bold mb-3 text-gradient">ছবি আপলোড</h3>
+                                <div class="border-2 border-dashed border-gray-700 rounded-xl p-8 text-center cursor-pointer hover:bg-gray-800/20 transition-colors" id="dropArea">
+                                    <i class="fas fa-cloud-upload-alt text-4xl text-gray-500 mb-4"></i>
+                                    <p class="font-medium mb-2">ছবি এখানে ড্রপ করুন</p>
+                                    <p class="text-gray-400 mb-4">অথবা ব্রাউজ করুন</p>
+                                    <label for="imageUpload" class="btn-primary inline-block cursor-pointer">
+                                        <i class="fas fa-folder-open mr-2"></i> ছবি নির্বাচন
+                                    </label>
+                                    <input type="file" id="imageUpload" accept="image/*" class="hidden">
+                                    <p class="text-sm text-gray-500 mt-4">JPG, PNG (সর্বোচ্চ ৫MB)</p>
+                                </div>
+                                
+                                <div id="imagePreviewContainer" class="mt-4 hidden">
+                                    <img id="uploadedImagePreview" class="w-full h-48 object-cover rounded-xl" alt="Uploaded Image">
+                                    <button onclick="removeImage()" class="btn-primary w-full mt-2">
+                                        <i class="fas fa-times mr-2"></i> ছবি পরিবর্তন
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Selected Frame Preview -->
+                            <div class="mb-6" id="selectedFramePreviewContainer" style="display: none;">
+                                <h3 class="font-bold mb-3 text-gradient">নির্বাচিত ফ্রেম</h3>
+                                <div class="frame-preview">
+                                    <img id="selectedFrameImage" src="" alt="Selected Frame">
+                                </div>
+                            </div>
+                            
+                            <!-- Image Adjustments -->
+                            <div class="mb-6">
+                                <h3 class="font-bold mb-3 text-gradient">ছবি সামঞ্জস্য</h3>
+                                <div class="space-y-4">
+                                    <div>
+                                        <div class="flex justify-between mb-1">
+                                            <span>উজ্জ্বলতা</span>
+                                            <span id="brightnessValue">100%</span>
+                                        </div>
+                                        <input type="range" id="brightness" min="50" max="150" value="100" class="w-full accent-green-500">
+                                    </div>
+                                    
+                                    <div>
+                                        <div class="flex justify-between mb-1">
+                                            <span>কনট্রাস্ট</span>
+                                            <span id="contrastValue">100%</span>
+                                        </div>
+                                        <input type="range" id="contrast" min="50" max="150" value="100" class="w-full accent-green-500">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Frame Selection -->
+                        <div>
+                            <div class="mb-6">
+                                <h3 class="font-bold mb-3 text-gradient">ফ্রেম নির্বাচন</h3>
+                                <div class="grid grid-cols-2 gap-4" id="framesGrid">
+                                    <!-- Frames will be loaded here -->
+                                    <div class="col-span-2 text-center py-8">
+                                        <div class="loading-spinner mx-auto mb-4"></div>
+                                        <p class="text-gray-400">ফ্রেম লোড হচ্ছে...</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Text Overlay (Optional) -->
+                            <div class="mb-6">
+                                <div class="flex items-center justify-between mb-3">
+                                    <h3 class="font-bold text-gradient">ফ্রেমে টেক্সট যোগ করুন</h3>
+                                    <label class="flex items-center space-x-2 cursor-pointer">
+                                        <span class="text-sm text-gray-300">অফ</span>
+                                        <div class="toggle-switch">
+                                            <input type="checkbox" id="textToggle">
+                                            <span class="toggle-slider"></span>
+                                        </div>
+                                        <span class="text-sm text-green-400">অন</span>
+                                    </label>
+                                </div>
+                                
+                                <div id="textOptions" class="text-options-container space-y-3 collapsed">
+                                    <div>
+                                        <label class="block text-sm mb-2">টেক্সট</label>
+                                        <input type="text" id="frameText" placeholder="উদাহরণ: আমার মাতৃভাষা বাংলা" class="w-full" value="আমার মাতৃভাষা বাংলা">
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label class="block text-sm mb-2">সাইজ</label>
+                                            <select id="textSize" class="w-full">
+                                                <option value="24">ছোট</option>
+                                                <option value="32" selected>মাঝারি</option>
+                                                <option value="40">বড়</option>
+                                                <option value="48">অতিবড়</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm mb-2">রঙ</label>
+                                            <select id="textColor" class="w-full">
+                                                <option value="#FFFFFF" selected>সাদা</option>
+                                                <option value="#2A9D8F">সবুজ</option>
+                                                <option value="#E63946">লাল</option>
+                                                <option value="#FFD700">সোনালি</option>
+                                                <option value="#000000">কালো</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm mb-2">পজিশন</label>
+                                        <select id="textPosition" class="w-full">
+                                            <option value="top" selected>উপরে</option>
+                                            <option value="middle">মাঝে</option>
+                                            <option value="bottom">নিচে</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex space-x-4 mt-6">
+                        <button onclick="goToStep(1)" class="btn-primary flex-1">
+                            <i class="fas fa-arrow-left mr-2"></i> পূর্ববর্তী
+                        </button>
+                        <button onclick="goToStep(3)" class="btn-primary flex-1">
+                            পরবর্তী ধাপ <i class="fas fa-arrow-right ml-2"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Step 3: Preview & Download -->
+            <div id="step3" class="hidden animate-fadeIn">
+                <div class="glass-effect rounded-2xl p-6 md:p-8 mb-8">
+                    <h2 class="text-2xl font-bold mb-6 text-gradient">তৃতীয় ধাপ: প্রিভিউ ও ডাউনলোড</h2>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <!-- Preview -->
+                        <div>
+                            <div class="canvas-container relative mb-6">
+                                <canvas id="previewCanvas" width="1080" height="1080" class="w-full h-full bg-gray-900 rounded-xl"></canvas>
+                                <div id="canvasPlaceholder" class="absolute inset-0 flex flex-col items-center justify-center text-gray-500">
+                                    <i class="fas fa-image text-6xl mb-4"></i>
+                                    <p>ছবি তৈরি হচ্ছে...</p>
+                                </div>
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-4">
+                                <button onclick="downloadImage()" class="btn-primary">
+                                    <i class="fas fa-download mr-2"></i> ডাউনলোড
+                                </button>
+                                <button onclick="shareImage()" class="btn-primary bg-blue-600 hover:bg-blue-700">
+                                    <i class="fas fa-share-alt mr-2"></i> শেয়ার
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Info & Actions -->
+                        <div>
+                            <div class="bg-gray-800/30 rounded-xl p-6 mb-6">
+                                <h3 class="font-bold mb-4 text-green-300">ছবির তথ্য</h3>
+                                <div class="space-y-3">
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-400">নাম:</span>
+                                        <span id="previewName" class="font-medium"></span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-400">প্রতিষ্ঠান:</span>
+                                        <span id="previewSchool" class="font-medium"></span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-400">ফ্রেম:</span>
+                                        <span id="previewFrame" class="font-medium"></span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-400">ক্যাটাগরি:</span>
+                                        <span id="previewCategory" class="font-medium"></span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-400">আকার:</span>
+                                        <span id="previewSize" class="font-medium"></span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-400">টেক্সট:</span>
+                                        <span id="previewText" class="font-medium">বন্ধ</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-green-900/20 border border-green-800/30 rounded-xl p-6">
+                                <h3 class="font-bold mb-4 text-green-300">পরবর্তী করণীয়</h3>
+                                <ul class="space-y-3 text-sm text-gray-300">
+                                    <li class="flex items-start">
+                                        <i class="fas fa-check-circle text-green-400 mt-1 mr-2"></i>
+                                        <span>ছবি ডাউনলোড করে সোশ্যাল মিডিয়ায় শেয়ার করুন</span>
+                                    </li>
+                                    <li class="flex items-start">
+                                        <i class="fas fa-check-circle text-green-400 mt-1 mr-2"></i>
+                                        <span>আপনার প্রতিষ্ঠানের নামে জমা দিন</span>
+                                    </li>
+                                    <li class="flex items-start">
+                                        <i class="fas fa-check-circle text-green-400 mt-1 mr-2"></i>
+                                        <span>নতুন ছবি তৈরি করতে নিচের বাটনে ক্লিক করুন</span>
+                                    </li>
+                                </ul>
+                            </div>
+                            
+                            <div class="flex space-x-4 mt-6">
+                                <button onclick="goToStep(2)" class="btn-primary flex-1">
+                                    <i class="fas fa-edit mr-2"></i> ছবি পরিবর্তন
+                                </button>
+                                <button onclick="startNew()" class="btn-primary flex-1">
+                                    নতুন ছবি <i class="fas fa-plus ml-2"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- Footer -->
+    <footer class="glass-effect mt-12 py-6 px-6">
+        <div class="container mx-auto text-center text-gray-500 text-sm">
+            <p id="footerText">© ২০২৬ মাতৃভাষা দিবস ফ্রেম জেনারেটর। সকল অধিকার সংরক্ষিত NexDiv।</p>
+            <p class="mt-2">চারঘাট সরকারি টেকনিক্যাল স্কুল এন্ড কলেজ IoT ডিপাডমেন্ট দ্বারা তৈরি  </p>
+         <p class="mt-2">ডেভেলপ by Nafiz iqbal  </p>
+         <p class="mt-2"> IoT ডিপাডমেন্ট ১১ শ্রেণী  </p>
+
+        </div>
+    </footer>
+
+    <script>
+        // Firebase Configuration (Same as Admin Panel)
+        const firebaseConfig = {
+            apiKey: "AIzaSyAMV1OulqReMiqm8NUAS4IagtJcHv6RReY",
+            authDomain: "sosalfootbd.firebaseapp.com",
+            databaseURL: "https://sosalfootbd-default-rtdb.firebaseio.com",
+            projectId: "sosalfootbd",
+            storageBucket: "sosalfootbd.firebasestorage.app",
+            messagingSenderId: "1018951903131",
+            appId: "1:1018951903131:web:f3a1addcde70e5115da33e",
+            measurementId: "G-74VC5VTQZF"
+        };
+
+        // Initialize Firebase
+        let firebaseApp, database;
+        
+        // App State
+        const appState = {
+            currentStep: 1,
+            userInfo: {
+                name: '',
+                school: '',
+                phone: ''
+            },
+            uploadedImage: null,
+            selectedFrame: null,
+            frameImage: null, // ফ্রেম ইমেজ লোড করার জন্য
+            frames: [],
+            categories: ['all'],
+            currentCategory: 'all',
+            filters: {
+                brightness: 100,
+                contrast: 100
+            },
+            textSettings: {
+                enabled: false, // ডিফল্টভাবে বন্ধ
+                text: 'আমার মাতৃভাষা বাংলা',
+                size: 32,
+                color: '#FFFFFF',
+                position: 'top' // top, middle, bottom
+            },
+            settings: {
+                siteName: 'মাতৃভাষা দিবস ফ্রেম জেনারেটর',
+                downloadLimit: 50,
+                imageWidth: 1080,
+                imageHeight: 1080,
+                defaultText: 'আমার মাতৃভাষা বাংলা'
+            }
+        };
+
+        // Initialize
+        async function initApp() {
+            try {
+                firebaseApp = firebase.initializeApp(firebaseConfig);
+                database = firebase.database();
+                
+                // Setup realtime listeners
+                setupRealtimeListeners();
+                
+                // Load initial data
+                await loadInitialData();
+                
+                setupEventListeners();
+                
+                // Set initial step
+                updateStepIndicator();
+                
+                // Set default text from settings
+                document.getElementById('frameText').value = appState.settings.defaultText;
+                appState.textSettings.text = appState.settings.defaultText;
+                
+                // Update text options visibility based on toggle
+                updateTextOptionsVisibility();
+                
+            } catch (error) {
+                console.error("Initialization error:", error);
+                showNotification("সিস্টেম লোড করতে সমস্যা!", "error");
+            }
+        }
+
+        // Update text options visibility
+        function updateTextOptionsVisibility() {
+            const textOptions = document.getElementById('textOptions');
+            const textToggle = document.getElementById('textToggle');
+            
+            if (textToggle.checked) {
+                textOptions.classList.remove('collapsed');
+            } else {
+                textOptions.classList.add('collapsed');
+            }
+        }
+
+        // Setup realtime listeners for updates from Admin Panel
+        function setupRealtimeListeners() {
+            // Frames realtime updates
+            database.ref('frames').on('value', (snapshot) => {
+                console.log('Frames updated in realtime');
+                loadFrames();
+                showAdminUpdateIndicator();
+            });
+            
+            // Categories realtime updates
+            database.ref('categories').on('value', (snapshot) => {
+                console.log('Categories updated in realtime');
+                loadCategories();
+                showAdminUpdateIndicator();
+            });
+            
+            // Settings realtime updates
+            database.ref('settings').on('value', (snapshot) => {
+                console.log('Settings updated in realtime');
+                loadSettings();
+                showAdminUpdateIndicator();
+            });
+            
+            // Download count realtime updates
+            database.ref('stats/downloads').on('value', (snapshot) => {
+                console.log('Download count updated in realtime');
+                const count = snapshot.val() || 0;
+                document.getElementById('downloadCounter').textContent = count;
+            });
+        }
+
+        // Load initial data
+        async function loadInitialData() {
+            await Promise.all([
+                loadFrames(),
+                loadCategories(),
+                loadSettings(),
+                loadDownloadCount()
+            ]);
+        }
+
+        // Show admin update indicator
+        function showAdminUpdateIndicator() {
+            const indicator = document.getElementById('adminIndicator');
+            indicator.classList.remove('hidden');
+            
+            setTimeout(() => {
+                indicator.classList.add('hidden');
+            }, 3000);
+        }
+
+        // Load frames from Firebase
+        async function loadFrames() {
+            try {
+                const snapshot = await database.ref('frames').once('value');
+                const frames = [];
+                if (snapshot.exists()) {
+                    snapshot.forEach((child) => {
+                        const frame = child.val();
+                        // Only show active frames
+                        if (frame.status !== 'inactive') {
+                            frame.id = child.key;
+                            frames.push(frame);
+                        }
+                    });
+                }
+                appState.frames = frames;
+                renderFrames();
+            } catch (error) {
+                console.error("Error loading frames:", error);
+            }
+        }
+
+        // Load categories
+        async function loadCategories() {
+            try {
+                const snapshot = await database.ref('categories').once('value');
+                const categories = ['all'];
+                if (snapshot.exists()) {
+                    snapshot.forEach((child) => {
+                        categories.push(child.val().name);
+                    });
+                }
+                appState.categories = categories;
+                renderCategories();
+                
+                // Also update schools list from categories
+                updateSchoolsList();
+            } catch (error) {
+                console.error("Error loading categories:", error);
+            }
+        }
+
+        // Update schools list from categories
+        function updateSchoolsList() {
+            const schoolSelect = document.getElementById('userSchool');
+            const defaultOptions = '<option value="">প্রতিষ্ঠান নির্বাচন করুন</option>';
+            
+            // Get school type categories
+            const schoolCategories = appState.categories.filter(cat => 
+                cat !== 'all' && 
+                !['সাধারণ', 'general', 'premium', 'প্রিমিয়াম'].includes(cat)
+            );
+            
+            let options = defaultOptions;
+            
+            // Add school options from categories
+            schoolCategories.forEach(school => {
+                if (school !== 'সাধারণ' && school !== 'general' && school !== 'প্রিমিয়াম' && school !== 'premium') {
+                    options += `<option value="${school}">${school}</option>`;
+                }
+            });
+            
+            // Add other common schools
+            const commonSchools = [
+                'চারঘাট সরকারি টেকনিক্যাল স্কুল ও কলেজ',
+                'রাজশাহী কলেজ',
+                'নিউ গভঃ ডিগ্রী কলেজ',
+                'রাজশাহী বিশ্ববিদ্যালয়'
+            ];
+            
+            commonSchools.forEach(school => {
+                options += `<option value="${school}">${school}</option>`;
+            });
+            
+            options += '<option value="অন্যান্য">অন্যান্য</option>';
+            
+            schoolSelect.innerHTML = options;
+        }
+
+        // Load settings
+        async function loadSettings() {
+            try {
+                const snapshot = await database.ref('settings').once('value');
+                if (snapshot.exists()) {
+                    const settings = snapshot.val();
+                    appState.settings = {
+                        siteName: settings.siteName || 'মাতৃভাষা দিবস ফ্রেম জেনারেটর',
+                        downloadLimit: settings.downloadLimit || 50,
+                        imageWidth: settings.imageWidth || 1080,
+                        imageHeight: settings.imageHeight || 1080,
+                        defaultText: settings.defaultText || 'আমার মাতৃভাষা বাংলা'
+                    };
+                    
+                    // Update UI with settings
+                    document.getElementById('siteTitle').textContent = appState.settings.siteName;
+                    document.getElementById('footerText').textContent = `© ২০২৩ ${appState.settings.siteName}। সকল অধিকার সংরক্ষিত।`;
+                    document.getElementById('downloadLimitText').textContent = 
+                        `প্রতিদিন সর্বোচ্চ ${appState.settings.downloadLimit} বার ডাউনলোড করা যাবে`;
+                    
+                    // Update preview size
+                    document.getElementById('previewSize').textContent = 
+                        `${appState.settings.imageWidth} x ${appState.settings.imageHeight} px`;
+                        
+                    // Update default text if not already set by user
+                    if (!appState.userInfo.name) {
+                        document.getElementById('frameText').value = appState.settings.defaultText;
+                        appState.textSettings.text = appState.settings.defaultText;
+                    }
+                }
+            } catch (error) {
+                console.error("Error loading settings:", error);
+            }
+        }
+
+        // Load download count
+        async function loadDownloadCount() {
+            try {
+                const snapshot = await database.ref('stats/downloads').once('value');
+                const count = snapshot.val() || 0;
+                document.getElementById('downloadCounter').textContent = count;
+            } catch (error) {
+                console.error("Error loading download count:", error);
+            }
+        }
+
+        // Render frames
+        function renderFrames() {
+            const framesGrid = document.getElementById('framesGrid');
+            if (!framesGrid) return;
+            
+            let filteredFrames = appState.frames;
+            
+            // Filter by category
+            if (appState.currentCategory !== 'all') {
+                filteredFrames = filteredFrames.filter(frame => 
+                    frame.category === appState.currentCategory || 
+                    frame.category === 'general' ||
+                    frame.category === 'সাধারণ'
+                );
+            }
+            
+            // Filter by school if selected
+            if (appState.userInfo.school && appState.currentCategory === 'all') {
+                const schoolSpecificFrames = filteredFrames.filter(frame => 
+                    frame.category === appState.userInfo.school
+                );
+                
+                // If there are school-specific frames, show them first
+                if (schoolSpecificFrames.length > 0) {
+                    filteredFrames = schoolSpecificFrames;
+                }
+            }
+            
+            if (filteredFrames.length === 0) {
+                framesGrid.innerHTML = `
+                    <div class="col-span-2 text-center py-8">
+                        <p class="text-gray-400">কোন ফ্রেম পাওয়া যায়নি</p>
+                        <p class="text-sm text-gray-500 mt-2">অ্যাডমিন প্যানেল থেকে নতুন ফ্রেম যোগ করুন</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Sort frames: school-specific first, then general
+            filteredFrames.sort((a, b) => {
+                if (a.category === appState.userInfo.school && b.category !== appState.userInfo.school) return -1;
+                if (a.category !== appState.userInfo.school && b.category === appState.userInfo.school) return 1;
+                return 0;
+            });
+            
+            framesGrid.innerHTML = filteredFrames.map(frame => {
+                const isSchoolSpecific = frame.category === appState.userInfo.school;
+                const isSelected = appState.selectedFrame?.id === frame.id;
+                
+                return `
+                <div class="frame-card ${isSelected ? 'selected' : ''}" 
+                     onclick="selectFrame('${frame.id}')">
+                    <div class="relative">
+                        <img src="${frame.coverUrl || frame.link || 'https://via.placeholder.com/300x150'}" 
+                             class="w-full h-32 object-cover"
+                             alt="${frame.name}"
+                             onerror="this.src='https://via.placeholder.com/300x150'">
+                        ${isSchoolSpecific ? '<span class="school-badge absolute top-2 left-2">আপনার প্রতিষ্ঠান</span>' : ''}
+                    </div>
+                    <div class="p-3">
+                        <h4 class="font-bold text-sm">${frame.name}</h4>
+                        <p class="text-xs text-gray-400">${frame.category || 'সাধারণ'}</p>
+                        <p class="text-xs text-green-400 mt-1">${frame.downloads || 0} বার ডাউনলোড</p>
+                    </div>
+                </div>
+                `;
+            }).join('');
+        }
+
+        // Render categories
+        function renderCategories() {
+            const categoryFilter = document.getElementById('categoryFilter');
+            if (!categoryFilter) return;
+            
+            // Keep 'all' button and add others
+            const categories = appState.categories.filter(cat => cat !== 'all');
+            
+            let buttons = '<button class="category-btn active" onclick="filterCategory(\'all\')">সকল ফ্রেম</button>';
+            
+            categories.forEach(category => {
+                const isActive = appState.currentCategory === category;
+                buttons += `
+                    <button class="category-btn ${isActive ? 'active' : ''}" 
+                            onclick="filterCategory('${category}')">
+                        ${category}
+                    </button>
+                `;
+            });
+            
+            categoryFilter.innerHTML = buttons;
+        }
+
+        // Filter by category
+        function filterCategory(category) {
+            appState.currentCategory = category;
+            document.querySelectorAll('.category-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            renderFrames();
+        }
+
+        // Select frame and load frame image
+        function selectFrame(frameId) {
+            const frame = appState.frames.find(f => f.id === frameId);
+            if (!frame) return;
+            
+            appState.selectedFrame = frame;
+            
+            // Show selected frame preview
+            const previewContainer = document.getElementById('selectedFramePreviewContainer');
+            const frameImage = document.getElementById('selectedFrameImage');
+            
+            if (frame.link) {
+                previewContainer.style.display = 'block';
+                frameImage.src = frame.link;
+                frameImage.alt = frame.name;
+            } else {
+                previewContainer.style.display = 'none';
+            }
+            
+            // Load frame image if not already loaded
+            if (frame.link) {
+                appState.frameImage = new Image();
+                appState.frameImage.crossOrigin = "anonymous"; // CORS issue সমাধানের জন্য
+                appState.frameImage.onload = function() {
+                    console.log('ফ্রেম ইমেজ লোড হয়েছে:', frame.name);
+                    if (appState.uploadedImage) {
+                        updatePreview();
+                    }
+                };
+                appState.frameImage.onerror = function() {
+                    console.error('ফ্রেম ইমেজ লোড করতে সমস্যা:', frame.link);
+                    appState.frameImage = null;
+                    showNotification('ফ্রেম লোড করতে সমস্যা!', 'error');
+                };
+                appState.frameImage.src = frame.link;
+            } else {
+                appState.frameImage = null;
+            }
+            
+            renderFrames();
+            
+            if (appState.uploadedImage) {
+                updatePreview();
+            }
+            
+            showNotification(`ফ্রেম নির্বাচন করেছেন: ${frame.name}`, 'success');
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            // School selection
+            document.getElementById('userSchool').addEventListener('change', function() {
+                if (this.value === 'অন্যান্য') {
+                    document.getElementById('otherSchoolContainer').classList.remove('hidden');
+                    appState.userInfo.school = '';
+                } else {
+                    document.getElementById('otherSchoolContainer').classList.add('hidden');
+                    appState.userInfo.school = this.value;
+                }
+                renderFrames();
+            });
+            
+            // Other school name input
+            document.getElementById('otherSchoolName').addEventListener('input', function() {
+                appState.userInfo.school = this.value;
+                renderFrames();
+            });
+            
+            // Image upload
+            const dropArea = document.getElementById('dropArea');
+            const fileInput = document.getElementById('imageUpload');
+            
+            fileInput.addEventListener('change', handleImageUpload);
+            
+            // Drag and drop
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropArea.addEventListener(eventName, preventDefaults, false);
+            });
+            
+            dropArea.addEventListener('drop', handleDrop, false);
+            
+            // Image adjustments
+            document.getElementById('brightness').addEventListener('input', function() {
+                appState.filters.brightness = this.value;
+                document.getElementById('brightnessValue').textContent = this.value + '%';
+                if (appState.uploadedImage) updatePreview();
+            });
+            
+            document.getElementById('contrast').addEventListener('input', function() {
+                appState.filters.contrast = this.value;
+                document.getElementById('contrastValue').textContent = this.value + '%';
+                if (appState.uploadedImage) updatePreview();
+            });
+            
+            // Text toggle
+            document.getElementById('textToggle').addEventListener('change', function() {
+                appState.textSettings.enabled = this.checked;
+                updateTextOptionsVisibility();
+                if (appState.uploadedImage) updatePreview();
+            });
+            
+            // Text settings
+            document.getElementById('frameText').addEventListener('input', function() {
+                appState.textSettings.text = this.value;
+                if (appState.uploadedImage) updatePreview();
+            });
+            
+            document.getElementById('textSize').addEventListener('change', function() {
+                appState.textSettings.size = parseInt(this.value);
+                if (appState.uploadedImage) updatePreview();
+            });
+            
+            document.getElementById('textColor').addEventListener('change', function() {
+                appState.textSettings.color = this.value;
+                if (appState.uploadedImage) updatePreview();
+            });
+            
+            document.getElementById('textPosition').addEventListener('change', function() {
+                appState.textSettings.position = this.value;
+                if (appState.uploadedImage) updatePreview();
+            });
+        }
+
+        // Handle image upload
+        function handleImageUpload(e) {
+            const file = e.target.files[0];
+            if (file && file.type.startsWith('image/')) {
+                if (file.size > 5 * 1024 * 1024) {
+                    showNotification('ছবির আকার 5MB এর বেশি হতে পারবে না!', 'error');
+                    return;
+                }
+                loadImage(file);
+            }
+        }
+
+        // Handle drag and drop
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const file = dt.files[0];
+            if (file && file.type.startsWith('image/')) {
+                if (file.size > 5 * 1024 * 1024) {
+                    showNotification('ছবির আকার 5MB এর বেশি হতে পারবে না!', 'error');
+                    return;
+                }
+                loadImage(file);
+            }
+        }
+
+        // Load image
+        function loadImage(file) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = new Image();
+                img.onload = function() {
+                    appState.uploadedImage = img;
+                    document.getElementById('imagePreviewContainer').classList.remove('hidden');
+                    document.getElementById('uploadedImagePreview').src = event.target.result;
+                    updatePreview();
+                    showNotification('ছবি আপলোড সফল!', 'success');
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Remove image
+        function removeImage() {
+            appState.uploadedImage = null;
+            document.getElementById('imagePreviewContainer').classList.add('hidden');
+            document.getElementById('imageUpload').value = '';
+        }
+
+        // Update preview (for step 2)
+        function updatePreview() {
+            const canvas = document.getElementById('previewCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            if (!appState.uploadedImage) return;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Apply filters
+            ctx.filter = `brightness(${appState.filters.brightness}%) contrast(${appState.filters.contrast}%)`;
+            
+            // Draw user image
+            const scale = Math.min(canvas.width / appState.uploadedImage.width, 
+                                 canvas.height / appState.uploadedImage.height);
+            const width = appState.uploadedImage.width * scale;
+            const height = appState.uploadedImage.height * scale;
+            const x = (canvas.width - width) / 2;
+            const y = (canvas.height - height) / 2;
+            
+            ctx.drawImage(appState.uploadedImage, x, y, width, height);
+            
+            // Reset filter
+            ctx.filter = 'none';
+            
+            // Draw frame if selected and loaded
+            if (appState.selectedFrame && appState.frameImage && appState.frameImage.complete) {
+                ctx.drawImage(appState.frameImage, 0, 0, canvas.width, canvas.height);
+            }
+            
+            // Step 2-এ টেক্সট দেখাবে না - শুধুমাত্র ফ্রেম ইমেজ
+        }
+
+        // Go to step
+        function goToStep(step) {
+            // Validate step 1
+            if (step === 2) {
+                const name = document.getElementById('userName').value.trim();
+                const school = document.getElementById('userSchool').value;
+                
+                if (!name || !school) {
+                    showNotification('নাম এবং প্রতিষ্ঠান পূরণ করুন!', 'error');
+                    return;
+                }
+                
+                if (school === 'অন্যান্য') {
+                    const otherSchool = document.getElementById('otherSchoolName').value.trim();
+                    if (!otherSchool) {
+                        showNotification('প্রতিষ্ঠানের নাম লিখুন!', 'error');
+                        return;
+                    }
+                    appState.userInfo.school = otherSchool;
+                } else {
+                    appState.userInfo.school = school;
+                }
+                
+                appState.userInfo.name = name;
+                appState.userInfo.phone = document.getElementById('userPhone').value.trim();
+                
+                renderFrames();
+            }
+            
+            // Validate step 2
+            if (step === 3) {
+                if (!appState.uploadedImage) {
+                    showNotification('প্রথমে একটি ছবি আপলোড করুন!', 'error');
+                    return;
+                }
+                
+                if (!appState.selectedFrame) {
+                    showNotification('একটি ফ্রেম নির্বাচন করুন!', 'error');
+                    return;
+                }
+                
+                // Update preview info
+                document.getElementById('previewName').textContent = appState.userInfo.name;
+                document.getElementById('previewSchool').textContent = appState.userInfo.school;
+                document.getElementById('previewFrame').textContent = appState.selectedFrame.name;
+                document.getElementById('previewCategory').textContent = appState.selectedFrame.category || 'সাধারণ';
+                document.getElementById('previewSize').textContent = 
+                    `${appState.settings.imageWidth} x ${appState.settings.imageHeight} px`;
+                document.getElementById('previewText').textContent = 
+                    appState.textSettings.enabled ? 'চালু' : 'বন্ধ';
+                
+                document.getElementById('canvasPlaceholder').classList.add('hidden');
+                renderFinalPreview();
+            }
+            
+            // Hide all steps
+            document.getElementById('step1').classList.add('hidden');
+            document.getElementById('step2').classList.add('hidden');
+            document.getElementById('step3').classList.add('hidden');
+            
+            // Show current step
+            document.getElementById('step' + step).classList.remove('hidden');
+            appState.currentStep = step;
+            
+            updateStepIndicator();
+        }
+
+        // Update step indicator
+        function updateStepIndicator() {
+            document.querySelectorAll('.step').forEach((step, index) => {
+                if (index + 1 <= appState.currentStep) {
+                    step.className = 'step w-10 h-10 rounded-full bg-green-500 flex items-center justify-center text-white font-bold';
+                } else {
+                    step.className = 'step w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center text-gray-400 font-bold';
+                }
+            });
+        }
+
+        // Render final preview (for step 3) - নাম ও প্রতিষ্ঠানের নাম ফ্রেম থেকে সরানো হয়েছে
+        function renderFinalPreview() {
+            const canvas = document.getElementById('previewCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            if (!appState.uploadedImage) return;
+            
+            // Set canvas size from settings
+            canvas.width = appState.settings.imageWidth;
+            canvas.height = appState.settings.imageHeight;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Apply filters
+            ctx.filter = `brightness(${appState.filters.brightness}%) contrast(${appState.filters.contrast}%)`;
+            
+            // Draw user image
+            const scale = Math.min(canvas.width / appState.uploadedImage.width, 
+                                 canvas.height / appState.uploadedImage.height);
+            const width = appState.uploadedImage.width * scale;
+            const height = appState.uploadedImage.height * scale;
+            const x = (canvas.width - width) / 2;
+            const y = (canvas.height - height) / 2;
+            
+            ctx.drawImage(appState.uploadedImage, x, y, width, height);
+            
+            // Reset filter
+            ctx.filter = 'none';
+            
+            // Draw frame if selected and loaded
+            if (appState.selectedFrame && appState.frameImage && appState.frameImage.complete) {
+                ctx.drawImage(appState.frameImage, 0, 0, canvas.width, canvas.height);
+            }
+            
+            // Draw text if enabled (টগল অন থাকলে)
+            if (appState.textSettings.enabled && appState.textSettings.text) {
+                ctx.font = `bold ${appState.textSettings.size}px 'Hind Siliguri', sans-serif`;
+                ctx.fillStyle = appState.textSettings.color;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                
+                // Calculate text position based on selection
+                let textY;
+                switch (appState.textSettings.position) {
+                    case 'top':
+                        textY = 80 + appState.textSettings.size;
+                        break;
+                    case 'middle':
+                        textY = canvas.height / 2;
+                        break;
+                    case 'bottom':
+                        textY = canvas.height - 100;
+                        break;
+                    default:
+                        textY = 80 + appState.textSettings.size;
+                }
+                
+                // Add shadow for better readability
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+                ctx.shadowBlur = 5;
+                ctx.fillText(appState.textSettings.text, canvas.width / 2, textY);
+                ctx.shadowBlur = 0;
+            }
+            
+            // প্রতিষ্ঠানের নাম ও ইউজারের নাম ফ্রেমে দেখাবে না - এই অংশটি রিমুভ করা হয়েছে
+        }
+
+        // Download image
+        async function downloadImage() {
+            const canvas = document.getElementById('previewCanvas');
+            const link = document.createElement('a');
+            link.download = `মাতৃভাষা_দিবস_${appState.userInfo.name.replace(/\s+/g, '_')}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+            
+            // Update download count in Firebase
+            try {
+                // Update total download count
+                const currentCount = await database.ref('stats/downloads').once('value');
+                const newCount = (currentCount.val() || 0) + 1;
+                await database.ref('stats/downloads').set(newCount);
+                
+                // Update frame-specific download count
+                if (appState.selectedFrame) {
+                    const frameRef = database.ref(`frames/${appState.selectedFrame.id}`);
+                    const frameSnap = await frameRef.once('value');
+                    const frameData = frameSnap.val();
+                    const frameDownloads = (frameData.downloads || 0) + 1;
+                    await frameRef.update({ downloads: frameDownloads });
+                }
+                
+                // Save generated image to Firebase
+                await database.ref('generatedImages').push({
+                    userName: appState.userInfo.name,
+                    userSchool: appState.userInfo.school,
+                    userPhone: appState.userInfo.phone,
+                    frameName: appState.selectedFrame.name,
+                    frameId: appState.selectedFrame.id,
+                    category: appState.selectedFrame.category,
+                    textUsed: appState.textSettings.enabled ? appState.textSettings.text : 'না',
+                    textEnabled: appState.textSettings.enabled,
+                    timestamp: new Date().toISOString(),
+                    imageSize: `${canvas.width}x${canvas.height}`
+                });
+                
+                showNotification('ছবি ডাউনলোড সম্পন্ন হয়েছে!', 'success');
+                
+            } catch (error) {
+                console.error("Error saving download:", error);
+                showNotification('ডাউনলোড সফল, তবে ডাটা সেভ করতে সমস্যা!', 'error');
+            }
+        }
+
+        // Share image
+        async function shareImage() {
+            const canvas = document.getElementById('previewCanvas');
+            canvas.toBlob(async (blob) => {
+                if (navigator.share && navigator.canShare) {
+                    const file = new File([blob], 'mother-language-day.png', { type: 'image/png' });
+                    
+                    if (navigator.canShare({ files: [file] })) {
+                        try {
+                            await navigator.share({
+                                files: [file],
+                                title: 'মাতৃভাষা দিবস ফ্রেম',
+                                text: `আমার তৈরি মাতৃভাষা দিবসের ছবি - ${appState.userInfo.name}`
+                            });
+                        } catch (error) {
+                            console.error("Share error:", error);
+                        }
+                    }
+                } else {
+                    // Fallback for browsers that don't support Web Share API
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = 'mother-language-day.png';
+                    link.click();
+                    showNotification('ছবি ডাউনলোড করা হয়েছে, ম্যানুয়ালি শেয়ার করুন', 'success');
+                }
+            });
+        }
+
+        // Start new
+        function startNew() {
+            // Reset state
+            appState.uploadedImage = null;
+            appState.selectedFrame = null;
+            appState.frameImage = null;
+            appState.currentCategory = 'all';
+            appState.textSettings.text = appState.settings.defaultText;
+            appState.textSettings.enabled = false;
+            
+            // Reset UI
+            document.getElementById('imagePreviewContainer').classList.add('hidden');
+            document.getElementById('selectedFramePreviewContainer').style.display = 'none';
+            document.getElementById('imageUpload').value = '';
+            document.getElementById('frameText').value = appState.settings.defaultText;
+            document.getElementById('userName').value = '';
+            document.getElementById('userSchool').value = '';
+            document.getElementById('userPhone').value = '';
+            document.getElementById('otherSchoolContainer').classList.add('hidden');
+            document.getElementById('otherSchoolName').value = '';
+            document.getElementById('textToggle').checked = false;
+            updateTextOptionsVisibility();
+            
+            // Reset category filter
+            document.querySelectorAll('.category-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector('.category-btn').classList.add('active');
+            
+            // Reset sliders
+            document.getElementById('brightness').value = 100;
+            document.getElementById('contrast').value = 100;
+            document.getElementById('brightnessValue').textContent = '100%';
+            document.getElementById('contrastValue').textContent = '100%';
+            appState.filters.brightness = 100;
+            appState.filters.contrast = 100;
+            
+            goToStep(1);
+            showNotification('নতুন ছবি তৈরি শুরু করুন!', 'success');
+        }
+
+        // Show notification
+        function showNotification(message, type) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification ${type} show`;
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+</html>
